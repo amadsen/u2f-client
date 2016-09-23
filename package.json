@@ -1,6 +1,6 @@
 {
   "name": "u2f-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Access U2F USB/HID keys directly, without browser",
   "repository": {
     "type": "git",
@@ -24,13 +24,13 @@
     "test": "mocha"
   },
   "dependencies": {
-    "node-hid": "^0.3.2",
-    "async": "",
-    "psl": "",
-    "request": ""
+    "async": "^2.0.1",
+    "node-hid": "^0.5.1",
+    "psl": "^1.1.14",
+    "request": "^2.75.0"
   },
   "devDependencies": {
-    "u2f": "",
-    "mocha": "2"
+    "mocha": "2",
+    "u2f": "^0.1.2"
   }
 }
