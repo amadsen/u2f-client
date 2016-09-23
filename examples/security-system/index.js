@@ -89,6 +89,125 @@ setInterval(function() {
 }, 200);
 
 
+// Prepare the REPL commands
+function replRegister(cmd, context, filename, cb){
+  if(!cmd[1]){
+    return cb("The register command requires a user name.");
+  }
+  var user = cmd[1];
+
+  // Create registration request using U2F client module and send to device.
+  var registerRequest = u2f.request(appId);
+  u2fc.register(registerRequest, function(err, resp) {
+      if (err) return cb(err);
+
+      // Check response is valid.
+      var keyData = u2f.checkRegistration(registerRequest, resp);
+      if (!keyData.successful)
+          return cb(new Error(keyData.errorMessage));
+
+      keys.push({
+          user: user,
+          keyHandle: keyData.keyHandle,
+          publicKey: keyData.publicKey,
+      });
+      saveKeys();
+      console.log('User '+user+' registered successfully');
+      cb();
+  });
+}
+
+function replLogin (cmd, context, filename, cb) {
+  if(!cmd[1]){
+    return cb("The login command requires a user name.");
+  }
+  var user = cmd[1];
+  var userKeys = keys.filter(function(key) {return key.user === user;});
+  if (userKeys.length == 0) {
+      console.log("Unknown user.");
+      return cb();
+  }
+  async.filterSeries(userKeys, function(key, cb) {
+      u2fc.check(u2f.request(appId, key.keyHandle), function(err, res) {
+          if (err) {
+              console.error(err);
+              return cb(false);
+          }
+          cb(res);
+      });
+  }, function(approvedKeys) {
+      if (approvedKeys.length == 0) {
+          console.log("No applicable keys found.");
+          return cb();
+      }
+      var key = approvedKeys[0];
+      var req = u2f.request(appId, key.keyHandle);
+      u2fc.sign(req, function(err, resp) {
+          if (err) return cb(err);
+          var data = u2f.checkSignature(req, resp, key.publicKey);
+          if (!data.successful) {
+              console.log(" == ACCESS DENIED == ");
+              console.log(data.errorMessage);
+          } else {
+              console.log(" == ACCESS GRANTED for user "+key.user+" == ")
+          }
+      });
+  });
+}
+
+function replRemove (cmd, context, filename, cb) {
+  if(!cmd[1]){
+    return cb("The remove command requires a user name.");
+  }
+  var user = cmd[1];
+  var newKeys = keys.filter(function(key) {return key.user !== user;});
+  if (newKeys.length == keys.length) {
+      console.log("No keys for user '"+user+"' found.");
+  } else {
+      console.log((keys.length-newKeys.length)+" keys removed.");
+      keys = newKeys;
+      saveKeys();
+  }
+  cb();
+}
+
+function replHelp (cmd, context, filename, cb) {
+  console.log("Commands available:");
+  console.log("  help             Prints this message");
+  console.log("  register <user>  Registers given user with currently connected device");
+  console.log("  login <user>     Try to log in as a given user");
+  console.log("  remove <user>    Clears access for given user");
+  console.log("  users            Prints registered users");
+  console.log("  devices          Prints currently connected devices");
+  cb();
+}
+
+function replUsers (cmd, context, filename, cb) {
+  var users = {};
+  for (var i = 0; i < keys.length; i++)
+      users[keys[i].user] = true;
+  console.log("Registered users: "+(Object.keys(users).join(", ") || 'none'));
+  cb();
+}
+
+function replDevices (cmd, context, filename, cb) {
+  cb(null, u2fc.devices());
+}
+
+function replUndefined (cmd, context, filename, cb) {
+  cb(null, "Unknown command - " + cmd[0] + ". Type 'help' to get all available commands.");
+}
+
+var replCommands = {
+  register: replRegister,
+  login: replLogin,
+  remove: replRemove,
+  help: replHelp,
+  users: replUsers,
+  devices: replDevices,
+  "undefined": replUndefined
+};
+
 // Launch the REPL.
 console.log("Welcome to U2F Security System example. Insert U2F key and touch it to get access granted.");
 console.log("Type 'register <user>' to register currently inserted U2F device as belonging to given user.");
@@ -97,102 +216,13 @@ console.log("Registration data is kept in 'keys.json' file.");
 
 repl.start({
     eval: function(cmd, context, filename, cb) {
-        cmd = cmd.slice(1, -2).split(' ').filter(Boolean);
+        cmd = cmd.replace(/^'(.*)'$/m, "$1").split(/\s/).filter(Boolean);
         if (cmd.length === 0) {
             cb();
-
-        } else if (cmd[0] === 'register' && cmd[1]) {
-            var user = cmd[1];
-
-            // Create registration request using U2F client module and send to device.
-            var registerRequest = u2f.request(appId);
-            u2fc.register(registerRequest, function(err, resp) {
-                if (err) return cb(err);
-                
-                // Check response is valid.
-                var keyData = u2f.checkRegistration(registerRequest, resp);
-                if (!keyData.successful)
-                    return cb(new Error(keyData.errorMessage));
-
-                keys.push({
-                    user: user,
-                    keyHandle: keyData.keyHandle,
-                    publicKey: keyData.publicKey,
-                });
-                saveKeys();
-                console.log('User '+user+' registered successfully');
-                cb();
-            });
-
-        } else if (cmd[0] === 'login' && cmd[1]) {
-            var user = cmd[1];
-            var userKeys = keys.filter(function(key) {return key.user === user;});
-            if (userKeys.length == 0) {
-                console.log("Unknown user.");
-                return cb();
-            }
-            async.filterSeries(userKeys, function(key, cb) {
-                u2fc.check(u2f.request(appId, key.keyHandle), function(err, res) {
-                    if (err) {
-                        console.error(err);
-                        return cb(false);
-                    }
-                    cb(res);
-                });
-            }, function(approvedKeys) {
-                if (approvedKeys.length == 0) {
-                    console.log("No applicable keys found.");
-                    return cb();
-                }
-                var key = approvedKeys[0];
-                var req = u2f.request(appId, key.keyHandle);
-                u2fc.sign(req, function(err, resp) {
-                    if (err) return cb(err);
-                    var data = u2f.checkSignature(req, resp, key.publicKey);
-                    if (!data.successful) {
-                        console.log(" == ACCESS DENIED == ");
-                        console.log(data.errorMessage);
-                    } else {
-                        console.log(" == ACCESS GRANTED for user "+key.user+" == ")
-                    }
-                });
-            });
-
-        } else if (cmd[0] === 'remove' && cmd[1]) {
-            var user = cmd[1];
-            var newKeys = keys.filter(function(key) {return key.user !== user;});
-            if (newKeys.length == keys.length) {
-                console.log("No keys for user '"+user+"' found.");
-            } else {
-                console.log((keys.length-newKeys.length)+" keys removed.");
-                keys = newKeys;
-                saveKeys();
-            }
-            cb();
-
-        } else if (cmd[0] === 'help') {
-            console.log("Commands available:");
-            console.log("  help             Prints this message");
-            console.log("  register <user>  Registers given user with currently connected device");
-            console.log("  login <user>     Try to log in as a given user");
-            console.log("  remove <user>    Clears access for given user");
-            console.log("  users            Prints registered users");
-            console.log("  devices          Prints currently connected devices");
-            cb();
-
-        } else if (cmd[0] === 'users') {
-            var users = {};
-            for (var i = 0; i < keys.length; i++)
-                users[keys[i].user] = true;
-            console.log("Registered users: "+(Object.keys(users).join(", ") || 'none'));
-            cb();
-
-        } else if (cmd[0] === 'devices') {
-            cb(null, u2fc.devices());
-
-        } else {
-            cb(null, "Unknown command. Type 'help' to get all available commands.");
         }
+
+        var cmdFn = replCommands[ cmd[0] ] || replCommands.undefined;
+        cmdFn(cmd, context, filename, cb);
     },
     ignoreUndefined: true,
 
@@ -200,4 +230,3 @@ repl.start({
     console.log();
     process.exit();
 });
-
