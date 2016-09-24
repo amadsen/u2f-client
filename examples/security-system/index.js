@@ -66,7 +66,7 @@ function deviceConnected(device) {
 }
 
 function deviceDisconnected(deviceId) {
-    console.log("\n -- U2F device/key disconnected");
+    console.log("\n -- U2F device/key disconnected", deviceId);
 }
 
 // Poll for changes in devices array.
@@ -80,8 +80,9 @@ setInterval(function() {
         else
             delete devicesSeen[id];
     }
-    for (var k in devicesSeen)
-        deviceDisconnected(k);
+    for (var k in devicesSeen) {
+      deviceDisconnected(k);
+    }
 
     devicesSeen = {};
     for (var i = 0; i < devices.length; i++)
@@ -194,6 +195,11 @@ function replDevices (cmd, context, filename, cb) {
   cb(null, u2fc.devices());
 }
 
+function replExit (cmd, context, filename, cb) {
+  console.log('Exiting');
+  process.exit();
+}
+
 function replUndefined (cmd, context, filename, cb) {
   cb(null, "Unknown command - " + cmd[0] + ". Type 'help' to get all available commands.");
 }
@@ -205,6 +211,7 @@ var replCommands = {
   help: replHelp,
   users: replUsers,
   devices: replDevices,
+  exit: replExit,
   "undefined": replUndefined
 };
 
@@ -222,7 +229,7 @@ repl.start({
         }
 
         var cmdFn = replCommands[ cmd[0] ] || replCommands.undefined;
-        cmdFn(cmd, context, filename, cb);
+        cmdFn.call(repl, cmd, context, filename, cb);
     },
     ignoreUndefined: true,
 
