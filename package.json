@@ -25,12 +25,14 @@
   },
   "dependencies": {
     "async": "^2.0.1",
+    "bindings": "^1.2.1",
     "node-hid": "^0.5.1",
     "psl": "^1.1.14",
     "request": "^2.75.0"
   },
   "devDependencies": {
     "mocha": "2",
+    "nan": "^2.4.0",
     "u2f": "^0.1.2"
   }
 }
