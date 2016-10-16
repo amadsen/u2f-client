@@ -1,7 +1,7 @@
-#include "devices.h"
+#include "../devices.h"
 
-#include <CoreFoundation/CoreFoundation.h>
-#include <IOKit/hid/IOHIDLib.h>
+#include "hid-support_mac.h"
+
 
 NAN_METHOD(devices) {
   IOHIDManagerRef tIOHIDManagerRef = NULL;
@@ -78,24 +78,44 @@ NAN_METHOD(devices) {
 				continue;
 			}
 
+      IOHIDDeviceRef dev = tIOHIDDeviceRefs[deviceIndex];
+      assert( IOHIDDeviceGetTypeID() == CFGetTypeID(dev) );
+
+
       // create a new object to hold the device information
       v8::Local<v8::Object> deviceInfo = Nan::New<v8::Object>();
-      // deviceInfo->Set(Nan::New<String>("vendorId").ToLocalChecked(), Nan::New<Integer>(dev->vendor_id));
-      // deviceInfo->Set(Nan::New<String>("productId").ToLocalChecked(), Nan::New<Integer>(dev->product_id));
-      // if (dev->path) {
-      //   deviceInfo->Set(Nan::New<String>("path").ToLocalChecked(), Nan::New<String>(dev->path).ToLocalChecked());
-      // }
-      // if (dev->serial_number) {
-      //   deviceInfo->Set(Nan::New<String>("serialNumber").ToLocalChecked(), Nan::New<String>(narrow(dev->serial_number).c_str()).ToLocalChecked());
-      // }
-      // if (dev->manufacturer_string) {
-      //   deviceInfo->Set(Nan::New<String>("manufacturer").ToLocalChecked(), Nan::New<String>(narrow(dev->manufacturer_string).c_str()).ToLocalChecked());
-      // }
-      // if (dev->product_string) {
-      //   deviceInfo->Set(Nan::New<String>("product").ToLocalChecked(), Nan::New<String>(narrow(dev->product_string).c_str()).ToLocalChecked());
-      // }
-      // deviceInfo->Set(Nan::New<String>("release").ToLocalChecked(), Nan::New<Integer>(dev->release_number));
-      // deviceInfo->Set(Nan::New<String>("interface").ToLocalChecked(), Nan::New<Integer>(dev->interface_number));
+      deviceInfo->Set(
+        Nan::New<v8::String>("vendorId").ToLocalChecked(),
+        getUInt32Property( dev, CFSTR(kIOHIDVendorIDKey) )
+      );
+      deviceInfo->Set(
+        Nan::New<v8::String>("productId").ToLocalChecked(),
+        getUInt32Property( dev, CFSTR(kIOHIDProductIDKey) )
+      );
+      deviceInfo->Set(
+        Nan::New<v8::String>("path").ToLocalChecked(),
+        Nan::New<v8::String>("").ToLocalChecked()
+      );
+      deviceInfo->Set(
+        Nan::New<v8::String>("serialNumber").ToLocalChecked(),
+        getStringProperty( dev, CFSTR(kIOHIDSerialNumberKey) )
+      );
+      deviceInfo->Set(
+        Nan::New<v8::String>("manufacturer").ToLocalChecked(),
+        getStringProperty( dev, CFSTR(kIOHIDManufacturerKey) )
+      );
+      deviceInfo->Set(
+        Nan::New<v8::String>("product").ToLocalChecked(),
+        getStringProperty( dev, CFSTR(kIOHIDProductKey) )
+      );
+      deviceInfo->Set(
+        Nan::New<v8::String>("release").ToLocalChecked(),
+        getUInt32Property( dev, CFSTR(kIOHIDVersionNumberKey) )
+      );
+      deviceInfo->Set(
+        Nan::New<v8::String>("interface").ToLocalChecked(),
+        Nan::New<v8::Int32>(-1) // not meaningful on Mac
+      );
 
       // add deviceInfo object to the array
       retval->Set(count++, deviceInfo);

@@ -4,9 +4,10 @@
             "target_name": "U2fDevices",
             "sources": [
                 "cpp/u2f-devices.cc",
-                "cpp/devices_mac.cc",
-                "cpp/devices_win.cc",
-                "cpp/devices_linux.cc"
+                "cpp/mac/devices_mac.cc",
+                "cpp/mac/hid-support_mac.cc",
+                "cpp/win/devices_win.cc",
+                "cpp/linux/devices_linux.cc"
             ],
             "include_dirs" : [
  	 			"<!(node -e \"require('nan')\")"
