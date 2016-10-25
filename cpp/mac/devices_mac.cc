@@ -189,7 +189,7 @@ NAN_METHOD(devices) {
       );
       deviceInfo->Set(
         Nan::New<v8::String>("path").ToLocalChecked(),
-        Nan::New<v8::String>("").ToLocalChecked()
+        getRegistryEntryId(dev)
       );
       deviceInfo->Set(
         Nan::New<v8::String>("serialNumber").ToLocalChecked(),

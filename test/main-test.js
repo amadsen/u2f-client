@@ -11,7 +11,7 @@ describe("U2F HID Device", function() {
 
     it("should enumerate available devices", function() {
         var devices = U2FHIDDevice.enumerate()
-        if (devices.length == 0) 
+        if (devices.length == 0)
             throw new Error("No U2F devices found.");
         deviceInfo = devices[0];
         assert(deviceInfo);
@@ -19,7 +19,10 @@ describe("U2F HID Device", function() {
 
     it("should open correctly first device", function(done) {
         U2FHIDDevice.open(deviceInfo, function(err, dev) {
-            if (err) return done(err);
+            if (err) {
+              console.error(err);
+              return done(err);
+            }
             device = dev;
             assert(device);
             done();
@@ -55,11 +58,11 @@ describe("U2F Device interface", function() {
 
     before(function(done) {
         var devices = U2FHIDDevice.enumerate();
-        if (devices.length == 0) 
+        if (devices.length == 0)
             return done(new Error("No U2F devices found."));
         U2FHIDDevice.open(devices[0], function(err, dev) {
             if (err) return done(err);
-            
+
             device = new U2FDevice(dev);
             done();
         });
@@ -115,4 +118,3 @@ describe("U2F Device interface", function() {
         device && device.close();
     });
 });
-
