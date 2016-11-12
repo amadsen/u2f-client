@@ -40,7 +40,7 @@ function deviceConnected(device) {
         });
 
     }, function(approvedKeys) {
-        if (approvedKeys.length == 0) {
+        if (!approvedKeys || approvedKeys.length == 0) {
             console.log(" -- No user keys found. Register with 'register <username>'.");
 
         } else if (approvedKeys.length == 1) {
@@ -73,20 +73,22 @@ function deviceDisconnected(deviceId) {
 var devicesSeen = {};
 setInterval(function() {
     var devices = u2fc.devices();
-    for (var i = 0; i < devices.length; i++) {
+    for (var i = 0, l = devices.length; i < l; i++) {
         var id = devices[i].id;
-        if (!devicesSeen[id])
-            setTimeout(deviceConnected, 0, devices[i]);
-        else
-            delete devicesSeen[id];
+        if (!devicesSeen[id]) {
+          setTimeout(deviceConnected, 0, devices[i]);
+        } else {
+          delete devicesSeen[id];
+        }
     }
     for (var k in devicesSeen) {
       deviceDisconnected(k);
     }
 
-    devicesSeen = {};
-    for (var i = 0; i < devices.length; i++)
-        devicesSeen[devices[i].id] = true;
+    devicesSeen = devices.reduce( function( devicesSeen, deviceInfo){
+      devicesSeen[deviceInfo.id] = true;
+      return devicesSeen;
+    }, {});
 }, 200);
 
 
