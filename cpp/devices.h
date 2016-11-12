@@ -6,4 +6,6 @@
 NAN_METHOD(supportsU2f);
 NAN_METHOD(devices);
 
+NAN_METHOD(open);
+
 #endif

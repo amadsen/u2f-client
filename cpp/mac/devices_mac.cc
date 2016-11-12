@@ -1,6 +1,7 @@
 #include "../devices.h"
 
 #include "hid-support_mac.h"
+#include "native-u2f-device_mac.h"
 
 const UInt32 fidoUsagePage = 0xF1D0;
 const UInt32 fidoUsage     = 0x0001;
@@ -12,12 +13,15 @@ NAN_METHOD(supportsU2f) {
   IOHIDDeviceRef *tIOHIDDeviceRefs = nil;
   CFIndex deviceCount = 0;
 
+  // TODO: add branching logic that supports path (RegistryEntryId) as a single
+  // parameter to this function.
+
   do {
-		tIOHIDManagerRef = IOHIDManagerCreate(kCFAllocatorDefault,
-		                                      kIOHIDOptionsTypeNone);
-		if (!tIOHIDManagerRef) {
-			break;
-		}
+	tIOHIDManagerRef = IOHIDManagerCreate(kCFAllocatorDefault,
+	                                      kIOHIDOptionsTypeNone);
+	if (!tIOHIDManagerRef) {
+		break;
+	}
 
     // create a dictionary to add usage page/usages to
     deviceMatchingDictionary = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks );
@@ -88,59 +92,59 @@ NAN_METHOD(supportsU2f) {
 		CFRelease(deviceCFSetRef);
 		deviceCFSetRef = NULL;
 	}
-  if (deviceMatchingDictionary) {
-    CFRelease(deviceMatchingDictionary);
-  }
+    if (deviceMatchingDictionary) {
+        CFRelease(deviceMatchingDictionary);
+    }
 	if (tIOHIDManagerRef) {
 		CFRelease(tIOHIDManagerRef);
 	}
 
-  // return a boolean indicating whether we found a device with the vendorId and
-  // productId that also supports the U2F usagePage and usage. If deviceCount is
-  // greater than 0, we found it.
-  info.GetReturnValue().Set((deviceCount > 0));
+    // return a boolean indicating whether we found a device with the vendorId and
+    // productId that also supports the U2F usagePage and usage. If deviceCount is
+    // greater than 0, we found it.
+    info.GetReturnValue().Set((deviceCount > 0));
 
 }
 
 NAN_METHOD(devices) {
-  IOHIDManagerRef tIOHIDManagerRef = NULL;
-	CFSetRef deviceCFSetRef = NULL;
-  CFMutableDictionaryRef deviceMatchingDictionary = NULL;
-	IOHIDDeviceRef *tIOHIDDeviceRefs = nil;
+    IOHIDManagerRef tIOHIDManagerRef = NULL;
+    CFSetRef deviceCFSetRef = NULL;
+    CFMutableDictionaryRef deviceMatchingDictionary = NULL;
+    IOHIDDeviceRef *tIOHIDDeviceRefs = nil;
 
-  // create an array to return
-  v8::Local<v8::Array> retval = Nan::New<v8::Array>();
+    // create an array to return
+    v8::Local<v8::Array> retval = Nan::New<v8::Array>();
 
-  do {
+    do {
 		tIOHIDManagerRef = IOHIDManagerCreate(kCFAllocatorDefault,
 		                                      kIOHIDOptionsTypeNone);
 		if (!tIOHIDManagerRef) {
 			break;
 		}
 
-    // create a dictionary to add usage page/usages to
-    deviceMatchingDictionary = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks );
-    if(!deviceMatchingDictionary){
-        break;
-    }
+        // create a dictionary to add usage page/usages to
+        deviceMatchingDictionary = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks );
+        if(!deviceMatchingDictionary){
+            break;
+        }
 
-    // Set FIDO Usage Page
-    CFNumberRef pageCFNumberRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &fidoUsagePage );
-    if ( !pageCFNumberRef ) {
-        break;
-    }
-    CFDictionarySetValue( deviceMatchingDictionary,
-                         CFSTR( kIOHIDDeviceUsagePageKey ), pageCFNumberRef );
-    CFRelease( pageCFNumberRef );
+        // Set FIDO Usage Page
+        CFNumberRef pageCFNumberRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &fidoUsagePage );
+        if ( !pageCFNumberRef ) {
+            break;
+        }
+        CFDictionarySetValue( deviceMatchingDictionary,
+                             CFSTR( kIOHIDDeviceUsagePageKey ), pageCFNumberRef );
+        CFRelease( pageCFNumberRef );
 
-    // Set FIDO primary usage
-    CFNumberRef usageCFNumberRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &fidoUsage );
-    if ( !usageCFNumberRef ) {
-        break;
-    }
-    CFDictionarySetValue( deviceMatchingDictionary,
-                         CFSTR( kIOHIDDeviceUsageKey ), usageCFNumberRef );
-    CFRelease( usageCFNumberRef );
+        // Set FIDO primary usage
+        CFNumberRef usageCFNumberRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &fidoUsage );
+        if ( !usageCFNumberRef ) {
+            break;
+        }
+        CFDictionarySetValue( deviceMatchingDictionary,
+                             CFSTR( kIOHIDDeviceUsageKey ), usageCFNumberRef );
+        CFRelease( usageCFNumberRef );
 
 		IOHIDManagerSetDeviceMatching(tIOHIDManagerRef,
                                       deviceMatchingDictionary);
@@ -168,60 +172,60 @@ NAN_METHOD(devices) {
 		CFRelease(deviceCFSetRef);
 		deviceCFSetRef = NULL;
 
-    int count = 0;
+        int count = 0;
 		for (deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++) {
 			if (!tIOHIDDeviceRefs[deviceIndex]) {
 				continue;
 			}
 
-      IOHIDDeviceRef dev = tIOHIDDeviceRefs[deviceIndex];
-      assert( IOHIDDeviceGetTypeID() == CFGetTypeID(dev) );
+            IOHIDDeviceRef dev = tIOHIDDeviceRefs[deviceIndex];
+            assert( IOHIDDeviceGetTypeID() == CFGetTypeID(dev) );
 
-      // create a new object to hold the device information
-      v8::Local<v8::Object> deviceInfo = Nan::New<v8::Object>();
-      deviceInfo->Set(
-        Nan::New<v8::String>("vendorId").ToLocalChecked(),
-        getUInt32Property( dev, CFSTR(kIOHIDVendorIDKey) )
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("productId").ToLocalChecked(),
-        getUInt32Property( dev, CFSTR(kIOHIDProductIDKey) )
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("path").ToLocalChecked(),
-        getRegistryEntryId(dev)
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("serialNumber").ToLocalChecked(),
-        getStringProperty( dev, CFSTR(kIOHIDSerialNumberKey) )
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("manufacturer").ToLocalChecked(),
-        getStringProperty( dev, CFSTR(kIOHIDManufacturerKey) )
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("product").ToLocalChecked(),
-        getStringProperty( dev, CFSTR(kIOHIDProductKey) )
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("release").ToLocalChecked(),
-        getUInt32Property( dev, CFSTR(kIOHIDVersionNumberKey) )
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("usagePage").ToLocalChecked(),
-        Nan::New<v8::Int32>(fidoUsagePage) // just set it to the one we searched for
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("usage").ToLocalChecked(),
-        Nan::New<v8::Int32>(fidoUsage) // just set it to the one we searched for
-      );
-      deviceInfo->Set(
-        Nan::New<v8::String>("interface").ToLocalChecked(),
-        Nan::New<v8::Int32>(-1) // not meaningful on Mac
-      );
+            // create a new object to hold the device information
+            v8::Local<v8::Object> deviceInfo = Nan::New<v8::Object>();
+            deviceInfo->Set(
+                Nan::New<v8::String>("vendorId").ToLocalChecked(),
+                getUInt32Property( dev, CFSTR(kIOHIDVendorIDKey) )
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("productId").ToLocalChecked(),
+                getUInt32Property( dev, CFSTR(kIOHIDProductIDKey) )
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("path").ToLocalChecked(),
+                getRegistryEntryId(dev)
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("serialNumber").ToLocalChecked(),
+                getStringProperty( dev, CFSTR(kIOHIDSerialNumberKey) )
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("manufacturer").ToLocalChecked(),
+                getStringProperty( dev, CFSTR(kIOHIDManufacturerKey) )
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("product").ToLocalChecked(),
+                getStringProperty( dev, CFSTR(kIOHIDProductKey) )
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("release").ToLocalChecked(),
+                getUInt32Property( dev, CFSTR(kIOHIDVersionNumberKey) )
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("usagePage").ToLocalChecked(),
+                Nan::New<v8::Int32>(fidoUsagePage) // just set it to the one we searched for
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("usage").ToLocalChecked(),
+                Nan::New<v8::Int32>(fidoUsage) // just set it to the one we searched for
+            );
+            deviceInfo->Set(
+                Nan::New<v8::String>("interface").ToLocalChecked(),
+                Nan::New<v8::Int32>(-1) // not meaningful on Mac
+            );
 
-      // add deviceInfo object to the array
-      retval->Set(count++, deviceInfo);
+            // add deviceInfo object to the array
+            retval->Set(count++, deviceInfo);
 		}
 	} while (false);
 
@@ -232,12 +236,30 @@ NAN_METHOD(devices) {
 		CFRelease(deviceCFSetRef);
 		deviceCFSetRef = NULL;
 	}
-  if (deviceMatchingDictionary) {
-    CFRelease(deviceMatchingDictionary);
-  }
+    if (deviceMatchingDictionary) {
+        CFRelease(deviceMatchingDictionary);
+    }
 	if (tIOHIDManagerRef) {
 		CFRelease(tIOHIDManagerRef);
 	}
 
 	info.GetReturnValue().Set(retval);
+}
+
+
+NAN_METHOD(open) {
+    NativeU2fDevice nativeU2fDevice = NULL;
+    // info[0] should be a "path" - on Mac this is the RegistryEntryID
+    // returned by IORegistryEntryGetRegistryEntryID
+    v8::String devicePath = Nan::To<v8::String>(info[0]).FromJust();
+    do {
+
+    } while(false);
+
+    // not sure I need to do this... it's probably better to throw or return an error
+    if(nativeU2fDevice){
+        info.GetReturnValue().Set(nativeU2fDevice);
+    } else {
+        info.GetReturnValue().Set(Nan::Null());
+    }
 }
