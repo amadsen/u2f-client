@@ -70,26 +70,32 @@ function deviceDisconnected(deviceId) {
 }
 
 // Poll for changes in devices array.
-var devicesSeen = {};
-setInterval(function() {
-    var devices = u2fc.devices();
-    for (var i = 0, l = devices.length; i < l; i++) {
-        var id = devices[i].id;
-        if (!devicesSeen[id]) {
-          setTimeout(deviceConnected, 0, devices[i]);
-        } else {
-          delete devicesSeen[id];
+var devicesSeen = {},
+    pausePolling = false;
+function pollDevices() {
+    if(!pausePolling){
+        var devices = u2fc.devices();
+        for (var i = 0, l = devices.length; i < l; i++) {
+            var id = devices[i].id;
+            if (!devicesSeen[id]) {
+              setTimeout(deviceConnected, 0, devices[i]);
+            } else {
+              delete devicesSeen[id];
+            }
         }
-    }
-    for (var k in devicesSeen) {
-      deviceDisconnected(k);
-    }
+        for (var k in devicesSeen) {
+          deviceDisconnected(k);
+        }
 
-    devicesSeen = devices.reduce( function( devicesSeen, deviceInfo){
-      devicesSeen[deviceInfo.id] = true;
-      return devicesSeen;
-    }, {});
-}, 200);
+        devicesSeen = devices.reduce( function( devicesSeen, deviceInfo){
+          devicesSeen[deviceInfo.id] = true;
+          return devicesSeen;
+        }, {});
+    }
+    setTimeout(pollDevices, 500);
+}
+// start polling
+pollDevices();
 
 
 // Prepare the REPL commands
@@ -99,9 +105,15 @@ function replRegister(cmd, context, filename, cb){
   }
   var user = cmd[1];
 
+  // pause polling until registration completes
+  pausePolling = true;
+
   // Create registration request using U2F client module and send to device.
   var registerRequest = u2f.request(appId);
   u2fc.register(registerRequest, function(err, resp) {
+      // re-enable polling
+      pausePolling = false;
+
       if (err) return cb(err);
 
       // Check response is valid.
