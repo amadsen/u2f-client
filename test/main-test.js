@@ -52,69 +52,69 @@ describe("U2F HID Device", function() {
     });
 });
 
-// describe("U2F Device interface", function() {
-//     var device, userDb;
-//     var appId = "http://demo.com";
-//
-//     before(function(done) {
-//         var devices = U2FHIDDevice.enumerate();
-//         if (devices.length == 0)
-//             return done(new Error("No U2F devices found."));
-//         U2FHIDDevice.open(devices[0], function(err, dev) {
-//             if (err) return done(err);
-//
-//             device = new U2FDevice(dev);
-//             done();
-//         });
-//     });
-//
-//     it("should respond to apdu command", function(done) {
-//         device.command(U2FDevice.U2F_VERSION, done);
-//     });
-//
-//     it("should respond to u2f version message", function(done) {
-//         device.version(function(err, data) {
-//             if (err) return done(err);
-//             assert.equal(data.toString(), 'U2F_V2');
-//             done();
-//         });
-//     });
-//
-//     it("should respond to u2f register message", function(done) {
-//         this.timeout(35000);
-//
-//         var req = u2f.request(appId);
-//
-//         device.register(req, function(err, res) {
-//             assert.ifError(err);
-//
-//             var checkres = u2f.checkRegistration(req, res);
-//             assert(checkres.successful);
-//             assert(checkres.publicKey);
-//             assert(checkres.keyHandle);
-//
-//             userDb = {publicKey: checkres.publicKey, keyHandle: checkres.keyHandle};
-//
-//             done();
-//         });
-//     });
-//
-//     it("should respond to u2f sign message", function(done) {
-//         this.timeout(35000);
-//         var req = u2f.request(appId, userDb.keyHandle);
-//
-//         device.authenticate(req, function(err, res) {
-//             assert.ifError(err);
-//             assert(res);
-//
-//             var checkres = u2f.checkSignature(req, res, userDb.publicKey);
-//
-//             assert(checkres.successful);
-//             done();
-//         });
-//     });
-//
-//     after(function() {
-//         device && device.close();
-//     });
-// });
+describe("U2F Device interface", function() {
+    var device, userDb;
+    var appId = "http://demo.com";
+
+    before(function(done) {
+        var devices = U2FHIDDevice.enumerate();
+        if (devices.length == 0)
+            return done(new Error("No U2F devices found."));
+        U2FHIDDevice.open(devices[0], function(err, dev) {
+            if (err) return done(err);
+
+            device = new U2FDevice(dev);
+            done();
+        });
+    });
+
+    it("should respond to apdu command", function(done) {
+        device.command(U2FDevice.U2F_VERSION, done);
+    });
+
+    it("should respond to u2f version message", function(done) {
+        device.version(function(err, data) {
+            if (err) return done(err);
+            assert.equal(data.toString(), 'U2F_V2');
+            done();
+        });
+    });
+
+    it("should respond to u2f register message", function(done) {
+        this.timeout(35000);
+
+        var req = u2f.request(appId);
+
+        device.register(req, function(err, res) {
+            assert.ifError(err);
+
+            var checkres = u2f.checkRegistration(req, res);
+            assert(checkres.successful);
+            assert(checkres.publicKey);
+            assert(checkres.keyHandle);
+
+            userDb = {publicKey: checkres.publicKey, keyHandle: checkres.keyHandle};
+
+            done();
+        });
+    });
+
+    it("should respond to u2f sign message", function(done) {
+        this.timeout(35000);
+        var req = u2f.request(appId, userDb.keyHandle);
+
+        device.authenticate(req, function(err, res) {
+            assert.ifError(err);
+            assert(res);
+
+            var checkres = u2f.checkSignature(req, res, userDb.publicKey);
+
+            assert(checkres.successful);
+            done();
+        });
+    });
+
+    after(function() {
+        device && device.close();
+    });
+});

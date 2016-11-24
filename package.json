@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "async": "^2.0.1",
-    "node-hid": "git@github.com:node-hid/node-hid.git",
+    "node-hid": "git@github.com:amadsen/node-hid.git#node-hid-122",
     "psl": "^1.1.14",
     "request": "^2.75.0"
   },
